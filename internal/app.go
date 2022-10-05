@@ -35,7 +35,11 @@ func (app *App) Serve() error {
 }
 
 func (app *App) Init() error {
-
+	var err error
+	app.srv, err = service.NewService()
+	if err != nil {
+		return fmt.Errorf("%w")
+	}
 	app.httpsServer = server.NewServer(app.config, app.srv)
 
 	return nil

@@ -6,12 +6,3 @@ type UserModel struct {
 	Password  string `json:"password"`
 	AccountId int    `json:"account_id"`
 }
-
-func CreateNewUser(ip, nick, pass string, acc int) *UserModel {
-	return &UserModel{
-		Ip:        ip,
-		Nickname:  nick,
-		Password:  pass,
-		AccountId: acc,
-	}
-}

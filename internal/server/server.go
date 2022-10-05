@@ -24,7 +24,6 @@ func Router(srv *service.Service) *chi.Mux {
 	r.Use(middleware.Recoverer)
 	r.Route("/", func(r chi.Router) {
 		r.Get("/signup", srv.NewCredentials())
-		go http.ListenAndServe(":3000", r)
 	})
 	return r
 }

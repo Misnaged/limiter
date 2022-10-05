@@ -3,10 +3,8 @@ package service
 import (
 	"bytes"
 	"fmt"
-	"limiter/pkg/logger"
 	"net/http"
 
-	"limiter/internal/models"
 	"limiter/internal/service/handlers"
 	usr "limiter/internal/service/user"
 )
@@ -21,6 +19,25 @@ type Service struct {
 	Log, Pass      string
 }
 
+func NewService() (*Service, error) {
+
+	srv := &Service{}
+	srv.Handler = handlers.NewHandler()
+	u := srv.CreateUser(srv.Log, srv.Pass)
+	var err error
+	srv.MarshalledBody, err = u.MarshalBody(u.GetUserModel())
+	if err != nil {
+		return nil, fmt.Errorf("cannot marshal user date: %w", err)
+	}
+	srv.Response, err = u.UnMarshallBody(srv.MarshalledBody)
+	if err != nil {
+		return nil, fmt.Errorf("%w", err)
+	}
+	srv.Pass = u.CreatePassword(srv.Pass)
+
+	return srv, nil
+}
+
 // SendMsg is a simple http Request sending from user
 func (s *Service) SendMsg(msg []byte, url string) (*http.Request, error) {
 	req, err := http.NewRequest(http.MethodPost, url, bytes.NewBuffer(msg))
@@ -32,23 +49,13 @@ func (s *Service) SendMsg(msg []byte, url string) (*http.Request, error) {
 
 func (s *Service) NewCredentials() http.HandlerFunc {
 	reg := s.Handler.Registration(s.Log, s.Pass)
-	s.Pass = s.User.CreatePassword(s.Pass)
+	fmt.Println(s.Log, s.Pass)
 	return reg
 }
 
 func (s *Service) HandlerHttp() func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 
-		usr, err := s.CreateUser(s.Log, s.Pass, r.RemoteAddr)
-		if err != nil {
-			logger.Log().Errorf("cannot create user: %v", err)
-			return
-		}
-		s.Response, err = usr.UnMarshallBody(s.MarshalledBody)
-		if err != nil {
-			logger.Log().Errorf("cannot unmarshal user date: %v", err)
-			return
-		}
 	}
 }
 
@@ -56,15 +63,10 @@ func (s *Service) NewAccountId() int {
 	id := AccountId + 1
 	return id
 }
-func (s *Service) CreateUser(login, pass, ip string) (usr.IUser, error) {
+func (s *Service) CreateUser(log, pass string) usr.IUser {
 
-	var err error
 	accId := s.NewAccountId()
-	user := models.CreateNewUser(ip, login, pass, accId)
-	s.MarshalledBody, err = s.User.MarshalBody(user)
-	if err != nil {
-		return nil, fmt.Errorf("cannot marshal user date: %w", err)
-	}
+	user := usr.CreateNewUser(log, pass, accId)
 
-	return s.User, nil
+	return user
 }
